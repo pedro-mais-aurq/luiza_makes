@@ -1,0 +1,74 @@
+name: CI e publicação no GitHub Pages
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    permissions:
+      contents: read
+      pages: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v6
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Testar reservas, bloqueios e autorização
+        run: npm test
+      - name: Definir caminho do site
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          CUSTOM_BASE_PATH: ${{ vars.PAGES_BASE_PATH }}
+        run: |
+          repo="${REPOSITORY#*/}"
+          if [[ -n "$CUSTOM_BASE_PATH" ]]; then
+            echo "BASE_PATH=$CUSTOM_BASE_PATH" >> "$GITHUB_ENV"
+          elif [[ "$repo" == *.github.io ]]; then
+            echo "BASE_PATH=/" >> "$GITHUB_ENV"
+          else
+            echo "BASE_PATH=/$repo/" >> "$GITHUB_ENV"
+          fi
+      - name: Gerar frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_STATIC_HOST: 'true'
+      - name: Avisar quando a agenda não está conectada
+        if: vars.VITE_API_URL == '' && github.event_name != 'pull_request'
+        run: echo '::warning::A vitrine será publicada, mas a agenda exige VITE_API_URL apontando para um servidor HTTPS público. O GitHub Pages não hospeda o backend SQLite.'
+      - name: Preparar Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Enviar apenas arquivos públicos
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
