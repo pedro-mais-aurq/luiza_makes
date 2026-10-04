@@ -8,3 +8,5 @@ data/
 *.sqlite-wal
 coverage/
 .DS_Store
+
+!.env.demo

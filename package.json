@@ -7,8 +7,11 @@
     "node": ">=24.13.0"
   },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "vite --mode demo",
+    "dev:sqlite": "node scripts/dev.mjs",
     "dev:client": "vite",
+    "dev:demo": "vite --mode demo",
+    "preview": "vite preview --host 127.0.0.1",
     "dev:server": "node --env-file-if-exists=.env.local --watch server/index.mjs",
     "build": "tsc --noEmit && vite build",
     "start": "node --env-file-if-exists=.env.local server/index.mjs",

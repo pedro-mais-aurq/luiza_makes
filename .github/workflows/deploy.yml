@@ -46,10 +46,8 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_STORAGE_MODE: ${{ vars.VITE_STORAGE_MODE || (vars.VITE_API_URL && 'server' || 'demo') }}
           VITE_STATIC_HOST: 'true'
-      - name: Avisar quando a agenda não está conectada
-        if: vars.VITE_API_URL == '' && github.event_name != 'pull_request'
-        run: echo '::warning::A vitrine será publicada, mas a agenda exige VITE_API_URL apontando para um servidor HTTPS público. O GitHub Pages não hospeda o backend SQLite.'
       - name: Preparar Pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
